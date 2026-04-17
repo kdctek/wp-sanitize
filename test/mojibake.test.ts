@@ -72,4 +72,25 @@ describe('mojibake recovery', () => {
     expect(v).toEqual({ kind: 'string', value: 'â‚¹' });
     expect(warnings).toEqual([]);
   });
+
+  it('latin1 encode treats CP-1252 high chars as single bytes without warning', () => {
+    // MySQL `latin1` is actually CP-1252. U+201A (‚), U+20AC (€), U+2026 (…)
+    // etc. map to single bytes in CP-1252 so they should NOT trigger warnings.
+    const warnings: string[] = [];
+    const v = {
+      kind: 'string' as const,
+      value: '‚€… quotes "" —',
+    };
+    const out = serialize(v, { encoding: 'latin1', warnings });
+    expect(warnings).toEqual([]);
+    // char count: 14 ('‚' + '€' + '…' + ' ' + 'q' + 'u' + 'o' + 't' + 'e' + 's' + ' ' + '"' + '"' + ' ' + '—' = 15)
+    expect(out).toMatch(/^s:\d+:"/);
+  });
+
+  it('latin1 encode warns when a non-CP-1252 char is present (e.g. emoji)', () => {
+    const warnings: string[] = [];
+    serialize({ kind: 'string', value: 'thumbs 👍' }, { encoding: 'latin1', warnings });
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]).toMatch(/cannot represent/);
+  });
 });

@@ -19,17 +19,31 @@ function utf8ByteLen(s: string): number {
   return encoder.encode(s).byteLength;
 }
 
+// MySQL's `latin1` is actually Windows-1252 (CP-1252), not strict
+// ISO-8859-1. CP-1252 maps these Unicode code points to single bytes in
+// the 0x80-0x9F range — so they are valid "1 byte" characters in a
+// latin1_*-collated column and shouldn't trigger a warning.
+const CP1252_HIGH: ReadonlySet<number> = new Set([
+  0x20ac, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030,
+  0x0160, 0x2039, 0x0152, 0x017d, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022,
+  0x2013, 0x2014, 0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0x017e, 0x0178,
+]);
+
+function isCp1252Encodable(code: number): boolean {
+  return code <= 0xff || CP1252_HIGH.has(code);
+}
+
 function latin1CharLen(s: string, warnings?: string[]): number {
   if (warnings) {
     for (let i = 0; i < s.length; i++) {
       const code = s.charCodeAt(i);
-      if (code > 0xff) {
+      if (!isCp1252Encodable(code)) {
         warnings.push(
-          `Latin-1 encoding cannot represent character U+${code
+          `Latin-1 (CP-1252) cannot represent character U+${code
             .toString(16)
             .toUpperCase()
             .padStart(4, '0')} in "${s.slice(0, 40)}${s.length > 40 ? '…' : ''}". ` +
-            `Emitting char-count anyway; consider switching encoding to UTF-8.`,
+            `Emitting char-count anyway; switch encoding to UTF-8 if the destination column isn't latin1_*.`,
         );
         break;
       }
