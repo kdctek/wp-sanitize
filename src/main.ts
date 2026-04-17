@@ -1,7 +1,8 @@
-import { EditorState, type Extension } from '@codemirror/state';
+import { EditorState, Compartment, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { json as jsonLang } from '@codemirror/lang-json';
+import { oneDark } from '@codemirror/theme-one-dark';
 
 import './styles.css';
 import { unserialize, type Encoding as DecodeEncoding } from './unserialize.ts';
@@ -31,13 +32,39 @@ function toEncodeEncoding(enc: DecodeEncoding): EncodeEncoding {
 
 const byteLen = (s: string) => new TextEncoder().encode(s).byteLength;
 
+// One Compartment per editor lets us swap the theme dynamically when the
+// OS colour-scheme preference changes.
+const themeCompartments: Compartment[] = [];
+
+function currentThemeExt(): Extension {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return dark ? oneDark : [];
+}
+
 function makeEditor(parent: HTMLElement, initialDoc: string, extra: Extension[] = []): EditorView {
+  const themeCompartment = new Compartment();
+  themeCompartments.push(themeCompartment);
   return new EditorView({
     parent,
     state: EditorState.create({
       doc: initialDoc,
-      extensions: [basicSetup, EditorView.lineWrapping, EditorState.tabSize.of(2), ...extra],
+      extensions: [
+        basicSetup,
+        EditorView.lineWrapping,
+        EditorState.tabSize.of(2),
+        themeCompartment.of(currentThemeExt()),
+        ...extra,
+      ],
     }),
+  });
+}
+
+function applyThemeToAll(views: EditorView[]): void {
+  const next = currentThemeExt();
+  views.forEach((view, i) => {
+    const compartment = themeCompartments[i];
+    if (!compartment) return;
+    view.dispatch({ effects: compartment.reconfigure(next) });
   });
 }
 
@@ -201,5 +228,10 @@ selectEl.addEventListener('change', () => {
   doDecode();
   selectEl.value = '';
 });
+
+// Live-swap editor theme when the OS colour-scheme changes.
+window
+  .matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', () => applyThemeToAll([serializedView, jsonView]));
 
 setStatus('info', 'Paste serialized PHP on the left, or start typing JSON on the right.');
