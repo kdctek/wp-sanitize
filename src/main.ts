@@ -116,6 +116,35 @@ const jsonHost = document.getElementById('editor-json') as HTMLDivElement;
 const serializedView = makeEditor(serializedHost, '');
 const jsonView = makeEditor(jsonHost, '', [jsonLang()]);
 
+const serializedPane = serializedHost.closest('.pane') as HTMLElement;
+const jsonPane = jsonHost.closest('.pane') as HTMLElement;
+
+function clearPaneHighlights(): void {
+  serializedPane.classList.remove('pane--highlight');
+  jsonPane.classList.remove('pane--highlight');
+}
+
+function flashPane(pane: HTMLElement): void {
+  clearPaneHighlights();
+  pane.classList.add('pane--highlight');
+  // Defer listener install so the current click/keystroke doesn't immediately clear it.
+  setTimeout(() => {
+    const off = () => {
+      clearPaneHighlights();
+      document.removeEventListener('keydown', handler, true);
+      document.removeEventListener('pointerdown', handler, true);
+    };
+    const handler = (e: Event) => {
+      const target = e.target as Element | null;
+      // Interactions inside the highlighted pane (scroll, select, copy) keep the notice visible.
+      if (target && pane.contains(target)) return;
+      off();
+    };
+    document.addEventListener('keydown', handler, true);
+    document.addEventListener('pointerdown', handler, true);
+  }, 0);
+}
+
 let currentEncoding: DecodeEncoding = loadEncoding();
 
 function doDecode() {
@@ -129,6 +158,7 @@ function doDecode() {
     const v = unserialize(input, { encoding: currentEncoding, warnings });
     const json = phpToJson(v);
     replaceDoc(jsonView, JSON.stringify(json, null, 2));
+    flashPane(jsonPane);
     const base = `Decoded ${describePhp(v)} · ${byteLen(input)} bytes in · encoding: ${currentEncoding}`;
     if (warnings.length) {
       const head = warnings[0] ?? '';
@@ -162,6 +192,7 @@ function doEncode() {
     const encodeEnc = toEncodeEncoding(currentEncoding);
     const out = serialize(v, { encoding: encodeEnc, warnings });
     replaceDoc(serializedView, out);
+    flashPane(serializedPane);
     const base = `Encoded to ${byteLen(out)} bytes · encoding: ${encodeEnc}`;
     if (warnings.length) {
       const head = warnings[0] ?? '';
@@ -211,6 +242,7 @@ document.getElementById('copy-json')!.addEventListener('click', () => copyFrom(j
 document.getElementById('clear')!.addEventListener('click', () => {
   replaceDoc(serializedView, '');
   replaceDoc(jsonView, '');
+  clearPaneHighlights();
   setStatus('info', '');
 });
 

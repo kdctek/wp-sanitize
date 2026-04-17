@@ -187,6 +187,12 @@ main {
   border-radius: 10px;
   overflow: hidden;
   min-height: 24rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pane--highlight {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .pane-head {
