@@ -10,8 +10,10 @@ import { serialize, type Encoding as EncodeEncoding } from './serialize.ts';
 import { phpToJson, jsonToPhp, type Json } from './bridge.ts';
 import { PhpSerializeError } from './types.ts';
 import { EXAMPLES } from './examples.ts';
+import { WP_COLLATIONS, collationToEncoding } from './collations.ts';
 
 const ENCODING_STORAGE_KEY = 'wp-sanitize:encoding';
+const COLLATION_STORAGE_KEY = 'wp-sanitize:collation';
 const DEFAULT_ENCODING: DecodeEncoding = 'utf8';
 
 function loadEncoding(): DecodeEncoding {
@@ -22,6 +24,15 @@ function loadEncoding(): DecodeEncoding {
 
 function saveEncoding(enc: DecodeEncoding): void {
   localStorage.setItem(ENCODING_STORAGE_KEY, enc);
+}
+
+function loadCollation(): string {
+  return localStorage.getItem(COLLATION_STORAGE_KEY) ?? '';
+}
+
+function saveCollation(value: string): void {
+  if (value) localStorage.setItem(COLLATION_STORAGE_KEY, value);
+  else localStorage.removeItem(COLLATION_STORAGE_KEY);
 }
 
 // For encoding the JSON back to PHP format: `auto` is a decode-only concept,
@@ -227,6 +238,34 @@ selectEl.addEventListener('change', () => {
   replaceDoc(serializedView, v);
   doDecode();
   selectEl.value = '';
+});
+
+const collationEl = document.getElementById('collation') as HTMLSelectElement;
+for (const group of WP_COLLATIONS) {
+  const og = document.createElement('optgroup');
+  og.label = group.charset;
+  for (const c of group.options) {
+    const o = document.createElement('option');
+    o.value = c.value;
+    o.textContent = c.label;
+    o.title = c.title;
+    og.appendChild(o);
+  }
+  collationEl.appendChild(og);
+}
+collationEl.value = loadCollation();
+collationEl.addEventListener('change', () => {
+  const v = collationEl.value;
+  saveCollation(v);
+  if (!v) {
+    setStatus('info', 'Collation cleared.');
+    return;
+  }
+  const enc = collationToEncoding(v);
+  currentEncoding = enc;
+  saveEncoding(enc);
+  encodingEl.value = enc;
+  setStatus('info', `Collation set to ${v} → Source encoding: ${enc}. Re-decode to apply.`);
 });
 
 // Live-swap editor theme when the OS colour-scheme changes.

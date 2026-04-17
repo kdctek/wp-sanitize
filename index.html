@@ -16,6 +16,12 @@
       <h1>WP Sanitize</h1>
       <p class="tagline">WordPress PHP-serialized data editor — runs entirely in your browser.</p>
       <nav class="actions">
+        <label class="collation-picker" title="MySQL/MariaDB collation of the source column. Sets the Source encoding automatically.">
+          Collation
+          <select id="collation" aria-label="MySQL collation">
+            <option value="">—</option>
+          </select>
+        </label>
         <label class="encoding-picker" title="Source encoding of the serialized data. Pick Latin-1 for data from latin1_* MySQL collations.">
           Source encoding
           <select id="encoding" aria-label="Source encoding">
