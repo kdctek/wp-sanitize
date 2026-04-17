@@ -16,6 +16,14 @@
       <h1>WP Sanitize</h1>
       <p class="tagline">WordPress PHP-serialized data editor — runs entirely in your browser.</p>
       <nav class="actions">
+        <label class="encoding-picker" title="Source encoding of the serialized data. Pick Latin-1 for data from latin1_* MySQL collations.">
+          Source encoding
+          <select id="encoding" aria-label="Source encoding">
+            <option value="utf8">UTF-8 (WordPress default)</option>
+            <option value="latin1">Latin-1 (latin1_* collations)</option>
+            <option value="auto">Auto-detect</option>
+          </select>
+        </label>
         <label class="example-picker">
           Load example
           <select id="examples" aria-label="Load example">
@@ -64,7 +72,11 @@
     <footer class="footer">
       <p>
         Nothing leaves your browser — no analytics, no network calls after page load.
-        <a href="https://github.com/" id="repo-link" target="_blank" rel="noopener">Source</a>
+        <a href="https://github.com/kdctek/wp-sanitize" target="_blank" rel="noopener">Source</a>
+      </p>
+      <p class="credit">
+        Generously Powered by:
+        <a href="https://kdc.in" target="_kdc" rel="noopener" title="KDC Tek Private Limited">KDC</a>
       </p>
     </footer>
 

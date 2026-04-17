@@ -75,7 +75,8 @@ body {
   align-items: center;
 }
 
-.example-picker {
+.example-picker,
+.encoding-picker {
   font-size: 0.85rem;
   color: var(--muted);
   display: flex;
@@ -83,14 +84,15 @@ body {
   gap: 0.4rem;
 }
 
-.example-picker select {
+.example-picker select,
+.encoding-picker select {
   font: inherit;
   color: var(--ink);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.25rem 0.4rem;
-  max-width: 14rem;
+  max-width: 16rem;
 }
 
 button {
@@ -203,4 +205,7 @@ main {
   text-align: center;
 }
 
-.footer a { color: var(--muted); }
+.footer p { margin: 0.15rem 0; }
+.footer a { color: var(--muted); text-decoration: underline; }
+.footer a:hover { color: var(--accent); }
+.footer .credit { opacity: 0.85; }

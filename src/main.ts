@@ -4,11 +4,30 @@ import { basicSetup } from 'codemirror';
 import { json as jsonLang } from '@codemirror/lang-json';
 
 import './styles.css';
-import { unserialize } from './unserialize.ts';
-import { serialize } from './serialize.ts';
+import { unserialize, type Encoding as DecodeEncoding } from './unserialize.ts';
+import { serialize, type Encoding as EncodeEncoding } from './serialize.ts';
 import { phpToJson, jsonToPhp, type Json } from './bridge.ts';
 import { PhpSerializeError } from './types.ts';
 import { EXAMPLES } from './examples.ts';
+
+const ENCODING_STORAGE_KEY = 'wp-sanitize:encoding';
+const DEFAULT_ENCODING: DecodeEncoding = 'utf8';
+
+function loadEncoding(): DecodeEncoding {
+  const stored = localStorage.getItem(ENCODING_STORAGE_KEY);
+  if (stored === 'utf8' || stored === 'latin1' || stored === 'auto') return stored;
+  return DEFAULT_ENCODING;
+}
+
+function saveEncoding(enc: DecodeEncoding): void {
+  localStorage.setItem(ENCODING_STORAGE_KEY, enc);
+}
+
+// For encoding the JSON back to PHP format: `auto` is a decode-only concept,
+// so we fall back to UTF-8 (the safe/correct choice for most data).
+function toEncodeEncoding(enc: DecodeEncoding): EncodeEncoding {
+  return enc === 'latin1' ? 'latin1' : 'utf8';
+}
 
 const byteLen = (s: string) => new TextEncoder().encode(s).byteLength;
 
@@ -59,17 +78,27 @@ const jsonHost = document.getElementById('editor-json') as HTMLDivElement;
 const serializedView = makeEditor(serializedHost, '');
 const jsonView = makeEditor(jsonHost, '', [jsonLang()]);
 
+let currentEncoding: DecodeEncoding = loadEncoding();
+
 function doDecode() {
   const input = getDoc(serializedView).trim();
   if (!input) {
     setStatus('warn', 'Paste serialized PHP into the left pane first.');
     return;
   }
+  const warnings: string[] = [];
   try {
-    const v = unserialize(input);
+    const v = unserialize(input, { encoding: currentEncoding, warnings });
     const json = phpToJson(v);
     replaceDoc(jsonView, JSON.stringify(json, null, 2));
-    setStatus('ok', `Decoded ${describePhp(v)} · ${byteLen(input)} bytes in`);
+    const base = `Decoded ${describePhp(v)} · ${byteLen(input)} bytes in · encoding: ${currentEncoding}`;
+    if (warnings.length) {
+      const head = warnings[0] ?? '';
+      const extra = warnings.length > 1 ? ` (+${warnings.length - 1} more)` : '';
+      setStatus('warn', `${base}\n⚠ ${head}${extra}`);
+    } else {
+      setStatus('ok', base);
+    }
   } catch (e) {
     const msg = e instanceof PhpSerializeError ? e.message : String(e);
     setStatus('err', `Decode failed: ${msg}`);
@@ -89,11 +118,20 @@ function doEncode() {
     setStatus('err', `JSON parse error: ${(e as Error).message}`);
     return;
   }
+  const warnings: string[] = [];
   try {
     const v = jsonToPhp(json);
-    const out = serialize(v);
+    const encodeEnc = toEncodeEncoding(currentEncoding);
+    const out = serialize(v, { encoding: encodeEnc, warnings });
     replaceDoc(serializedView, out);
-    setStatus('ok', `Encoded to ${byteLen(out)} bytes`);
+    const base = `Encoded to ${byteLen(out)} bytes · encoding: ${encodeEnc}`;
+    if (warnings.length) {
+      const head = warnings[0] ?? '';
+      const extra = warnings.length > 1 ? ` (+${warnings.length - 1} more)` : '';
+      setStatus('warn', `${base}\n⚠ ${head}${extra}`);
+    } else {
+      setStatus('ok', base);
+    }
   } catch (e) {
     const msg = e instanceof PhpSerializeError ? e.message : String(e);
     setStatus('err', `Encode failed: ${msg}`);
@@ -136,6 +174,16 @@ document.getElementById('clear')!.addEventListener('click', () => {
   replaceDoc(serializedView, '');
   replaceDoc(jsonView, '');
   setStatus('info', '');
+});
+
+const encodingEl = document.getElementById('encoding') as HTMLSelectElement;
+encodingEl.value = currentEncoding;
+encodingEl.addEventListener('change', () => {
+  const v = encodingEl.value;
+  if (v !== 'utf8' && v !== 'latin1' && v !== 'auto') return;
+  currentEncoding = v;
+  saveEncoding(v);
+  setStatus('info', `Source encoding set to ${v}. Re-decode to apply.`);
 });
 
 const selectEl = document.getElementById('examples') as HTMLSelectElement;

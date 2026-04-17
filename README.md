@@ -7,6 +7,7 @@ WordPress stores a lot of data as PHP-serialized blobs (`wp_options.option_value
 - **No server.** Everything runs in the browser. Nothing is uploaded.
 - **No tracking.** No analytics, no external calls after the page loads.
 - **UTF-8 safe.** Byte counts are computed with `TextEncoder`, not `String.length`.
+- **Latin-1 / mojibake aware.** Pick the source encoding (UTF-8, Latin-1, or Auto-detect) to match your MySQL collation — works with both `utf8mb4_*` and `latin1_*`-collated WordPress databases.
 - **BigInt aware.** PHP ints above `2^53` round-trip via BigInt without precision loss.
 - **Round-trip fidelity.** `serialize(unserialize(x)) === x` byte-for-byte on real WP blobs.
 
@@ -40,6 +41,18 @@ public/
 .github/workflows/
   deploy.yml        build + deploy to Pages on push to main
 ```
+
+## Source encoding modes
+
+The **Source encoding** dropdown at the top of the UI controls how byte counts in `s:N:"..."` tokens are interpreted (on decode) and emitted (on encode). The choice is persisted in `localStorage`.
+
+| Mode | When to use | Decode behaviour | Encode byte counts |
+| --- | --- | --- | --- |
+| **UTF-8 (default)** | Data from a `utf8mb4_*`-collated column — the WordPress standard. | Strict: `N` = UTF-8 byte length. Hard error on mismatch. | UTF-8 byte length |
+| **Latin-1** | Data from a `latin1_*`-collated column (mojibake-prone dumps). | `N` = JS char count. Every char in the payload is treated as 1 "byte". | JS char count (so the output can be pasted back into the same `latin1_*` column) |
+| **Auto-detect** | Unsure. Picks strict UTF-8 first, falls back per-string to char-count on mismatch and emits a warning in the status bar. Good for inspecting unfamiliar blobs. | UTF-8 first, then char-count fallback | UTF-8 byte length (i.e. normalizes to a clean UTF-8 blob) |
+
+**Practical guide.** If your WP site runs on `latin1_swedish_ci` (common in older installs), switch to Latin-1 and your data will round-trip losslessly. If you're unsure, start with Auto — it'll decode successfully and tell you if it had to fall back.
 
 ## JSON bridge
 
