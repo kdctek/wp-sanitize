@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>WP Sanitize — WordPress PHP Serialized Data Editor</title>
+    <meta
+      name="description"
+      content="Decode, edit, and re-encode WordPress PHP-serialized data in your browser. No server, no tracking."
+    />
+    <meta name="color-scheme" content="light dark" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>WP Sanitize</h1>
+      <p class="tagline">WordPress PHP-serialized data editor — runs entirely in your browser.</p>
+      <nav class="actions">
+        <label class="example-picker">
+          Load example
+          <select id="examples" aria-label="Load example">
+            <option value="">—</option>
+          </select>
+        </label>
+        <button type="button" id="clear">Clear</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="pane">
+        <div class="pane-head">
+          <h2>Serialized PHP</h2>
+          <div class="pane-actions">
+            <button type="button" id="copy-serialized" title="Copy serialized to clipboard">Copy</button>
+          </div>
+        </div>
+        <div id="editor-serialized" class="editor"></div>
+        <div class="pane-foot">
+          <button type="button" id="decode" class="primary" title="Parse serialized text, render as JSON">
+            Decode →
+          </button>
+        </div>
+      </section>
+
+      <section class="pane">
+        <div class="pane-head">
+          <h2>JSON (editable)</h2>
+          <div class="pane-actions">
+            <button type="button" id="format-json" title="Reformat JSON with 2-space indent">Format</button>
+            <button type="button" id="copy-json" title="Copy JSON to clipboard">Copy</button>
+          </div>
+        </div>
+        <div id="editor-json" class="editor"></div>
+        <div class="pane-foot">
+          <button type="button" id="encode" class="primary" title="Serialize JSON back to PHP format">
+            ← Encode
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <footer class="footer">
+      <p>
+        Nothing leaves your browser — no analytics, no network calls after page load.
+        <a href="https://github.com/" id="repo-link" target="_blank" rel="noopener">Source</a>
+      </p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
